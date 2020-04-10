@@ -1,0 +1,20 @@
+{
+  "name": "00-launching-tinkerpop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc index.ts",
+    "start": "ts-node index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "gremlin": "^3.4.6"
+  },
+  "devDependencies": {
+    "@types/gremlin": "^3.4.6",
+    "ts-node": "^8.8.2"
+  }
+}

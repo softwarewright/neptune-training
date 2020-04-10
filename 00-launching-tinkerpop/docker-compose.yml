@@ -1,0 +1,7 @@
+version: "3.0"
+
+services:
+  gremlin:
+    image: tinkerpop/gremlin-server
+    ports:
+      - 8182:8182
