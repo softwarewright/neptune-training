@@ -1,0 +1,122 @@
+Resources:
+  NeptuneCluster: 
+    Type: AWS::Neptune::DBCluster
+    Properties:
+      DBSubnetGroupName: !Ref NeptuneDBSubnetGroup
+      VpcSecurityGroupIds:
+        - !GetAtt NeptuneVPC.DefaultSecurityGroup
+        - !GetAtt NeptuneServiceSecurityGroup.GroupId
+      Port: 8182
+      IamAuthEnabled: false # True for production
+  NeptuneDBInstance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBInstanceClass: "db.r4.xlarge"
+      DBClusterIdentifier: !Ref NeptuneCluster
+  NeptuneVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: neptune-vpc
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref NeptuneVPC
+      AvailabilityZone: 
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: neptune-subnet-1
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.2.0/24
+      VpcId: !Ref NeptuneVPC
+      AvailabilityZone: 
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: neptune-subnet-2
+  NeptuneDBSubnetGroup:
+    Type: AWS::Neptune::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Neptune subnet group"
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: neptune-igw
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref NeptuneVPC
+      InternetGatewayId: !Ref InternetGateway
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  SubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref NeptuneVPC
+      Tags:
+        - Key: Name
+          Value: rt-to-igw
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref SubnetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  Subnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SubnetRouteTable
+      SubnetId: !Ref Subnet1
+  Subnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref SubnetRouteTable
+      SubnetId: !Ref Subnet2
+  NeptuneServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Neptune Security Group"
+      GroupName: neptune-service-sg
+      VpcId: !Ref NeptuneVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8182
+          ToPort: 8182
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: Neptune Service Security Group
+Outputs:
+  Subnet1:
+    Description: Subnet ID 1
+    Value: !Ref Subnet1
+  Subnet2:
+    Description: Subnet ID 2
+    Value: !Ref Subnet2
+  SecurityGroup:
+    Description: Security group for the lambda service
+    Value: !Ref NeptuneServiceSecurityGroup
+  DBClusterEndpoint:
+    Description: Master endpoint for neptune cluster
+    Value: !GetAtt NeptuneDBCluster.ClusterResourceId
