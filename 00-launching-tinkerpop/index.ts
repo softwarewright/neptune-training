@@ -10,17 +10,19 @@ const connection = new DriverRemoteConnection('wss://localhost:8182/gremlin', {}
 console.log('Connected: ', connection);
 
 const graph = new Graph();
-const node = graph.traversal().withRemote(connection);
+const g = graph.traversal().withRemote(connection);
 
-console.log('Node: ', node);
+console.log('G: ', g);
 
-node.V().limit(1).count().next()
-    .then(data => {
-        console.log('Data:', data)
-        connection.close();
-    }).catch(error => {
-        console.log('Error: ', error);
-        connection.close();
-    })
+const setUpGraph = async () => {
+    console.log("Setting up the graph");
+    await g.addV('face').property('id', '1').property('name', 'darrius');
+    console.log("Created the Node");
 
+    const valueMap = await g.V().valueMap();
+
+    console.log("The value map: ", valueMap);
+}
+
+setUpGraph();
 
